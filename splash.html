@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--<link rel="shortcut icon" href="/images/flawk.png" type="image/x-icon">-->
+
+    <title style="color: #003399;">Epicenter 5G WiFi.</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #003399;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 1.0);
+            /* Transparent white background */
+            border-radius: 10px;
+            padding: 20px;
+            margin: 3% auto;
+            width: 75%;
+            max-width: 450px; /* Max-width for the container */
+            backdrop-filter: blur(1px);
+            /* Blur effect */
+        }
+
+        .insert {
+            text-align: center;
+        }
+
+        img {
+            width: 100%; /* Adjusted image size to the width of the screen */
+        }
+
+        big-red {
+            color: #003399;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        italic-black {
+            color: #003399;
+            font-style: italic;
+        }
+
+        form {
+            margin: 20px 0;
+        }
+
+        input[type="submit"] {
+            background-color: #003399;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        input[type=submit]:hover {
+            background-color: #002266; /* Darker button on hover */
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        
+        input[type=email],
+        input[type=tel],
+        input[type=firstname] {
+            width: 80%; /* Decreased width */
+            padding: 10px 15px;
+            margin: 10px auto; /* Updated for centering */
+            margin-bottom: 3px;
+            display: block; /* Changed to block for better control */
+            border: 1px solid #003399;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+            background-color: #fff;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+            text-align: center; /* Center text */
+        }
+
+        input[type=email],
+        input[type=tel] 
+        input[type=firstname]:focus {
+            outline: none; /* Remove default focus outline */
+            /* border-color: #003399; Change border color on focus */
+            box-shadow: 0 0 5px rgba(0, 51, 153, 0.5); /* Enhanced shadow on focus */
+        }
+
+        input[type=text],
+        input[type=number] {
+            color: black;
+            background: white;
+            margin-left: 0%;
+            margin-right: 5%;
+            text-align: left;
+            font-size: 1.0em;
+            line-height: 2.0em;
+            font-weight: bold;
+            border: 3px;
+            border-style: inset;
+        }
+
+        hr {
+            border: 1px solid #003399;
+            margin: 20px 0;
+        }
+
+        copy-right {
+            color: #003399;
+        }
+
+        h1, h2 {
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.1em;
+        }
+
+        h2 {
+            font-size: 1.0em;
+        }
+
+        ol {
+            list-style-type: decimal;
+            margin-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        hr {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        
+        
+        /* Styling for the terms and conditions checkbox label */
+        .terms-label {
+            display: inline-block;
+            margin-bottom: 2px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        /* Styling for the terms and conditions text */
+        .terms-text {
+            color: #003399;
+            font-size: 0.9em;
+        }
+
+        /* Added styles for the scrollable window */
+        .scrollable-window {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #003399;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="insert">
+            <br>
+            <img src="/images/epicenter.png" alt="For access to Epicenter's 5G WiFi, please click Join Now!.">
+            <hr>
+            <big-red><strong>Welcome to <span style="color: #003399;">Epicenter's</span> 5G WiFi!</strong></big-red>
+            <br>
+            <italic-black style="color: #003399;">The first <span style="color: #003399;">5G internet</span> for everyone!</italic-black>
+            <hr>
+
+        <form method="GET" action="$authaction">
+            <input type="hidden" name="tok" value="$tok">
+            <input type="hidden" name="redir" value="$redir">
+            
+            <!-- Email Field -->
+            <input type="email" name="email" placeholder="Your Email" required>
+            <label for="email" style="display: block; text-align: center; margin-top: 1px; font-size: 0.6em; color: #003399;">
+                You will need to verify your email and phone number.
+            </label>
+            
+            <!-- Phone Number Field -->
+            <input type="tel" name="phone" placeholder="Your Phone Number" required style="width: 80%; padding: 10px 15px; margin: 10px auto; display: block; border: 1px solid #003399; border-radius: 4px; box-sizing: border-box; font-size: 1em; background-color: #fff; box-shadow: 0 2px 3px rgba(0,0,0,0.1); text-align: center;">
+
+            <!-- First Name Field -->
+            <input type="firstname" name="firstname" placeholder="Your First Name" required>
+            
+            <!-- Terms and Conditions Checkbox -->
+            <label class="terms-label"><input type="checkbox" required> <span class="terms-text">I agree to the terms and conditions</span></label><br>
+            <label class="terms-label"><input type="checkbox" required> <span class="terms-text">I want to receive Epicenter promotions via email/SMS</span></label><br>
+            
+            <input type="submit" value="Join Now!">
+        </form>
+
+            <hr>
+
+            <!-- Scrollable window for terms and conditions -->
+            <div class="scrollable-window">
+                <h1>TERMS AND CONDITIONS</h1>
+
+                <p>These Terms and Conditions ("Terms") constitute a legally binding agreement between the user ("User," "You," or "Your") and Flawk. By accessing or using any of Our services, including but not limited to Flawk 5G WiFi ("Service"), You agree to be bound by these Terms. If You do not agree with any part of these Terms, do not use the Service.</p>
+        
+                <h2>1. Acceptance of Terms</h2>
+                <p>By accessing or using the Service, You acknowledge that You have read, understood, and agree to be bound by these Terms. If You are entering into these Terms on behalf of an entity, You represent that You have the authority to bind that entity to these Terms.</p>
+        
+                <h2>2. Collection of Data</h2>
+                <ol>
+                    <li>
+                        <strong>2.1 MAC Address and Web History:</strong> By using the Service, You expressly consent to the collection of Your MAC address, website browsing history, and interactions with displayed advertisements.
+                    </li>
+                    <li>
+                        <strong>2.2 Data Sharing:</strong> You acknowledge and agree that the data collected, including but not limited to Your MAC address, web history, and interactions with advertisements, may be shared with third parties. The sharing of data will be in compliance with applicable laws and regulations.
+                    </li>
+                    <li>
+                        <strong>2.3 Data Sale:</strong> By using the Flawk 5G WiFi service, you expressly acknowledge and agree that, in addition to the uses mentioned in section 2.2, we reserve the right to sell, transfer, or otherwise share aggregated or de-identified user data with third parties for profit-making purposes. This may include, but is not limited to, sharing data for marketing, advertising, and analytics purposes. We assure you that such data sharing will be conducted in compliance with applicable laws and regulations, and all personally identifiable information will be appropriately anonymized.
+                    </li>
+                </ol>
+        
+                <h2>4. Use of Information</h2>
+                <p>You understand and agree that the information collected may be used for marketing purposes, including but not limited to providing personalized advertisements and improving the overall user experience.</p>
+        
+                <h2>5. User Obligations</h2>
+                <p>You agree to use the Service in compliance with all applicable laws, regulations, and these Terms. You shall not engage in any activity that may compromise the security or integrity of the Service.</p>
+        
+                <h2>6. Modification of Terms</h2>
+                <p>Flawk reserves the right to modify, suspend, or terminate the Service or these Terms at any time, with or without notice. Any changes to the Terms will be effective upon posting. Your continued use of the Service after such modifications will constitute Your acknowledgment and acceptance of the modified Terms.</p>
+        
+                <h2>7. Limitation of Liability</h2>
+                <p>To the fullest extent permitted by law, Flawk shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:</p>
+                <ol>
+                    <li>Your use or inability to use the Service;</li>
+                    <li>Any unauthorized access to or use of Our servers and/or any personal information stored therein;</li>
+                    <li>Any interruption or cessation of transmission to or from the Service; or</li>
+                    <li>Any bugs, viruses, Trojan horses, or the like that may be transmitted to or through the Service by any third party.</li>
+                </ol>
+        
+                <h2>8. Miscellaneous</h2>
+                <ol>
+                    <li>
+                        <strong>8.1 Entire Agreement:</strong> These Terms constitute the entire agreement between You and Flawk regarding the use of the Service, superseding any prior agreements between You and Flawk.
+                    </li>
+                </ol>
+        
+                <p>By using the Service, You acknowledge that You have read, understood, and agreed to these Terms and consent to the collection and use of Your data as described herein.</p>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
