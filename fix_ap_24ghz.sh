@@ -39,8 +39,26 @@ nmcli -t -f NAME con show 2>/dev/null | grep -qxF "$CON" || die "NM connection '
 note "connection : $CON"
 note "interface  : $IFACE"
 
-ORIG_BAND=$(nmcli -g 802-11-wireless.band con show "$CON" 2>/dev/null)
-ORIG_CHAN=$(nmcli -g 802-11-wireless.channel con show "$CON" 2>/dev/null)
+# Devices in the field accumulate DUPLICATE profiles with the same name (3 x
+# "Epicenter-Rewards" seen on one unit). That makes every name-based nmcli call ambiguous,
+# so resolve the UUID actually bound to the AP interface and operate on that instead.
+DUPES=$(nmcli -t -f NAME con show 2>/dev/null | grep -cxF "$CON")
+CON_REF=$(nmcli -t -f NAME,UUID,DEVICE con show --active 2>/dev/null \
+          | awk -F: -v n="$CON" -v i="$IFACE" '$1==n && $3==i {print $2; exit}')
+[ -n "$CON_REF" ] || CON_REF=$(nmcli -t -f NAME,UUID con show 2>/dev/null \
+          | awk -F: -v n="$CON" '$1==n {print $2; exit}')
+[ -n "$CON_REF" ] || CON_REF="$CON"
+if [ "$DUPES" -gt 1 ]; then
+  note "WARNING: $DUPES profiles are named '$CON'. Using UUID $CON_REF (the one on $IFACE)."
+  note "         Stale duplicates can win at boot - consider deleting them afterwards."
+fi
+
+# nmcli prints one line per matching profile, so with duplicates this is multi-line. Take
+# the first non-blank value: otherwise ORIG_* holds garbage and the ROLLBACK command below
+# is built from it -- failing exactly when it is needed most.
+nm_get() { nmcli -g "$1" con show "$CON_REF" 2>/dev/null | grep -m1 -v '^[[:space:]]*$' | tr -d '[:space:]'; }
+ORIG_BAND=$(nm_get 802-11-wireless.band)
+ORIG_CHAN=$(nm_get 802-11-wireless.channel)
 note "current    : band=${ORIG_BAND:-unset} channel=${ORIG_CHAN:-unset}"
 
 if [ "$ORIG_BAND" = "bg" ]; then
@@ -99,21 +117,32 @@ echo "== 6. Apply to the live AP =="
 # 'band bg' is rejected while the channel is still 36, and setting the channel first leaves
 # an impossible band/channel pair that fails to activate with a misleading
 # "802.1X supplicant took too long to authenticate".
-nmcli con modify "$CON" 802-11-wireless.band bg 802-11-wireless.channel "$CHANNEL" \
+nmcli con modify "$CON_REF" 802-11-wireless.band bg 802-11-wireless.channel "$CHANNEL" \
   || die "could not set band+channel (nothing changed yet)"
-nmcli con down "$CON" >/dev/null 2>&1
+nmcli con down "$CON_REF" >/dev/null 2>&1
 sleep 2
-nmcli con up "$CON" >/dev/null 2>&1
+nmcli con up "$CON_REF" >/dev/null 2>&1
 sleep 5
 
-echo "== 7. Gate: did the AP come back? =="
+echo "== 7. Gate: did the AP come back ON THE INTENDED CHANNEL? =="
+# Checking only "an AP is up with 10.42.0.1" is NOT sufficient. If activation fails,
+# NetworkManager may auto-activate a stale DUPLICATE profile still set to 5 GHz ch36 --
+# the interface then looks healthy while the fix silently did not take effect, and the
+# script would report SUCCESS and persist a change that is not live. Verified by fault
+# injection: the weak gate passed with the AP still on channel 36. So assert the channel.
 UP=0
-iw dev "$IFACE" info 2>/dev/null | grep -q 'type AP' \
-  && ip -br addr show "$IFACE" 2>/dev/null | grep -q '10\.42\.0\.1' && UP=1
+LIVE_CH=$(iw dev "$IFACE" info 2>/dev/null | grep -oP 'channel \K[0-9]+')
+if iw dev "$IFACE" info 2>/dev/null | grep -q 'type AP' \
+   && ip -br addr show "$IFACE" 2>/dev/null | grep -q '10\.42\.0\.1' \
+   && [ "$LIVE_CH" = "$CHANNEL" ]; then
+  UP=1
+else
+  note "gate failed: type=$(iw dev "$IFACE" info 2>/dev/null | grep -oP 'type \K\w+' || echo none) live_channel=${LIVE_CH:-none} expected=$CHANNEL"
+fi
 if [ "$UP" != "1" ]; then
   echo "  AP did NOT come up on 2.4 GHz - ROLLING BACK to band=${ORIG_BAND} channel=${ORIG_CHAN}"
-  nmcli con modify "$CON" 802-11-wireless.band "${ORIG_BAND:-a}" 802-11-wireless.channel "${ORIG_CHAN:-36}"
-  nmcli con down "$CON" >/dev/null 2>&1; sleep 2; nmcli con up "$CON" >/dev/null 2>&1; sleep 4
+  nmcli con modify "$CON_REF" 802-11-wireless.band "${ORIG_BAND:-a}" 802-11-wireless.channel "${ORIG_CHAN:-36}"
+  nmcli con down "$CON_REF" >/dev/null 2>&1; sleep 2; nmcli con up "$CON_REF" >/dev/null 2>&1; sleep 4
   cp -a "$BK" "$AP_SH"
   systemctl restart nodogsplash >/dev/null 2>&1
   iw dev "$IFACE" info 2>/dev/null | grep -E 'type|channel'
@@ -170,5 +199,5 @@ echo "NOTE: this fixes JOINING the network. Completing the signup form is a sepa
 echo
 echo "Rollback:"
 echo "  sudo cp -a $BK $AP_SH"
-echo "  sudo nmcli con modify \"$CON\" 802-11-wireless.band ${ORIG_BAND:-a} 802-11-wireless.channel ${ORIG_CHAN:-36}"
-echo "  sudo nmcli con down \"$CON\"; sudo nmcli con up \"$CON\"; sudo systemctl restart nodogsplash"
+echo "  sudo nmcli con modify \"$CON_REF\" 802-11-wireless.band ${ORIG_BAND:-a} 802-11-wireless.channel ${ORIG_CHAN:-36}"
+echo "  sudo nmcli con down \"$CON_REF\"; sudo nmcli con up \"$CON_REF\"; sudo systemctl restart nodogsplash"
