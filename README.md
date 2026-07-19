@@ -25,6 +25,38 @@ If anything fails it aborts before touching `/etc`, and prints the rollback:
 sudo cp -a /etc/nodogsplash/htdocs.bak.<timestamp>/. /etc/nodogsplash/htdocs/
 ```
 
+## Fix the 5 GHz-only access point
+
+Separate problem, separate script. Flawk-5G ships with the AP hardcoded to **5 GHz
+channel 36** (`AP.sh` and the package's `AP_default.sh`), with regulatory domain `00`,
+where 5 GHz is passive-scan / no-initiating-radiation and beacons carry no Country IE.
+Clients enforce that inconsistently by baseband generation — an iPhone 12 could not join
+while an iPhone 15 could. 2.4 GHz also has materially better range.
+
+```bash
+wget -qO /tmp/fix_ap.sh https://raw.githubusercontent.com/Jeykobz/tmp_epicenter_captive_portal/main/fix_ap_24ghz.sh
+sudo bash /tmp/fix_ap.sh
+```
+
+Auto-detects this device's interface and connection name, surveys 2.4 GHz to pick the
+least congested of channels 1/6/11, sets the US regulatory domain, applies the change,
+**verifies the AP actually comes back up and auto-rolls-back if it does not**, then edits
+`AP.sh` so the change survives a reboot. Idempotent; does not reboot on its own.
+
+Overrides: `CHANNEL=1|6|11`, `REGDOM=US`, `FORCE=1` (proceed with clients connected).
+
+Two things this script encodes, both of which caused real outages:
+
+- **`band` and `channel` must be set in one `nmcli con modify`.** NM validates each modify
+  independently, so `band bg` is rejected while the channel is still 36, and setting the
+  channel first leaves an impossible pair that fails to activate with a misleading
+  *"802.1X supplicant took too long to authenticate"*.
+- **`start_router.py` deletes and recreates the AP from `AP.sh` on every boot**, so an
+  `nmcli`-only change silently reverts. The regdomain also resets to `00` each boot, which
+  is why `iw reg set` goes into `AP.sh` too.
+
+This fixes **joining** the network. Completing the signup form is a separate, open issue.
+
 ## Contents
 
 | File | Purpose |
