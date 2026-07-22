@@ -11,7 +11,7 @@ set -euo pipefail
 BASE="${BASE:-https://raw.githubusercontent.com/Jeykobz/tmp_epicenter_captive_portal/main}"
 HTDOCS=/etc/nodogsplash/htdocs
 STOCK_FLAWK_MD5=ce397427d9b88b716ff44e1d4db0b24f
-EPICENTER_SPLASH_MD5=e7b98ad20dc6716de05ae5a116cd564a
+EPICENTER_SPLASH_MD5=cd3aa0a9aaba8fa4525df77fb62aeefb
 
 STAGE=$(mktemp -d /tmp/epicenter.XXXXXX)
 trap 'rm -rf "$STAGE"' EXIT

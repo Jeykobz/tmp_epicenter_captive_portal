@@ -202,9 +202,10 @@
             <!-- First Name Field -->
             <input type="firstname" name="firstname" placeholder="Your First Name" required>
             
-            <!-- Terms and Conditions Checkbox -->
-            <label class="terms-label"><input type="checkbox" required> <span class="terms-text">I agree to the terms and conditions</span></label><br>
-            <label class="terms-label"><input type="checkbox" required> <span class="terms-text">I want to receive Epicenter promotions via email/SMS</span></label><br>
+            <!-- Terms and Conditions Checkbox (required to use the service) -->
+            <label class="terms-label"><input type="checkbox" name="terms" value="1" required> <span class="terms-text">I agree to the terms and conditions</span></label><br>
+            <!-- Marketing consent: OPTIONAL. Must NOT be required (TCPA/CTIA: SMS consent may not be conditioned on service). -->
+            <label class="terms-label"><input type="checkbox" name="sms_on" value="1"> <span class="terms-text">I want to receive Epicenter promotions via email/SMS</span></label><br>
             
             <input type="submit" value="Join Now!">
         </form>

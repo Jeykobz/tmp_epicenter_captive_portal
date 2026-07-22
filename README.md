@@ -1,92 +1,100 @@
-# Epicenter captive-portal theme (temporary distribution repo)
+# Epicenter captive portal — temporary distribution repo
 
-Poppy Bank Epicenter design for the nodogsplash captive portal on FlawkDetection
-devices. This repo exists **only to move these files onto deployed devices that
-have no SSH access**. It is not the source of truth — that is
-`FlawkDetection_3.0.2/Flawk-5G/htdocs_themes/epicenter/`.
+Moves the Poppy Bank Epicenter captive-portal onto deployed FlawkDetection devices that
+have **no SSH access** — the operator runs a one-line `wget | sudo bash` on the device.
+Source of truth is the package `FlawkDetection_3.0.2/`; this repo is a delivery shim.
 
-## Apply to a device
+There are two levels of change here — pick the one you need:
 
-On the device (needs `sudo`; the images ship `wget` but **not** `curl`):
+| Script | What it does | Restarts nodogsplash? |
+|---|---|---|
+| **`install.sh`** | **Full patch-supported portal**: patched nodogsplash binary (durable guest spool + `sms_on` consent + segfault/CSV-injection fixes) **+** consent-fixed splash **+** `guest_forwarder.py` + config + 30 s delivery cron. | Yes (health-gated, auto-rollback) |
+| `apply.sh` | Theme only — overlays `splash.html` / `status.html` / logo. | No |
+| `fix_ap_24ghz.sh` | Unrelated radio fix: moves the AP from 5 GHz ch36 to 2.4 GHz + sets a regulatory domain. | Yes |
 
-```bash
-wget -qO /tmp/apply.sh https://raw.githubusercontent.com/Jeykobz/tmp_epicenter_captive_portal/main/apply.sh
-bash /tmp/apply.sh
-```
+## Install the full patch-supported portal
 
-The script backs up the current payload, downloads and md5-verifies the theme,
-overlays it, then verifies the live result. It is idempotent, and it **does not
-restart nodogsplash** — the daemon re-reads `splash.html` per request, so the
-change goes live on the next connection without dropping guests already online.
-
-If anything fails it aborts before touching `/etc`, and prints the rollback:
+On the device (images ship `wget`, **not** `curl`):
 
 ```bash
-sudo cp -a /etc/nodogsplash/htdocs.bak.<timestamp>/. /etc/nodogsplash/htdocs/
+wget -qO /tmp/install.sh https://raw.githubusercontent.com/Jeykobz/tmp_epicenter_captive_portal/main/install.sh
+sudo bash /tmp/install.sh
 ```
 
-## Fix the 5 GHz-only access point
+What it does, in order: pre-flight (toolchain, source, config present) → clone + md5-verify
+this repo → back up the binary, htdocs and sources under one timestamp → **build the patched
+nodogsplash in `/tmp`** (device source untouched on failure) → **swap `/usr/bin/nodogsplash`
+only behind a runtime health check** (active + listening on `:2050`), auto-rolling-back to the
+original binary if it doesn't come up → overlay the consent-fixed splash → install
+`guest_forwarder.py` + config → append the 30 s delivery cron (idempotent) → run the forwarder
+once and print a PASS block with rollback instructions.
 
-Separate problem, separate script. Flawk-5G ships with the AP hardcoded to **5 GHz
-channel 36** (`AP.sh` and the package's `AP_default.sh`), with regulatory domain `00`,
-where 5 GHz is passive-scan / no-initiating-radiation and beacons carry no Country IE.
-Clients enforce that inconsistently by baseband generation — an iPhone 12 could not join
-while an iPhone 15 could. 2.4 GHz also has materially better range.
+**It never leaves the portal broken:** the live binary is only kept if the daemon comes up
+healthy with it; otherwise the backup is restored and re-verified before the script exits.
+Idempotent — safe to re-run.
+
+Defaults deliver to **devcms** immediately. Override per run:
 
 ```bash
-wget -qO /tmp/fix_ap.sh https://raw.githubusercontent.com/Jeykobz/tmp_epicenter_captive_portal/main/fix_ap_24ghz.sh
-sudo bash /tmp/fix_ap.sh
+sudo ENDPOINT=https://cms.flawkai.com/api/router/guests DRY_RUN=true bash /tmp/install.sh
 ```
 
-Auto-detects this device's interface and connection name, surveys 2.4 GHz to pick the
-least congested of channels 1/6/11, sets the US regulatory domain, applies the change,
-**verifies the AP actually comes back up and auto-rolls-back if it does not**, then edits
-`AP.sh` so the change survives a reboot. Idempotent; does not reboot on its own.
+- `ENDPOINT` — CMS ingest URL (default `https://devcms.flawkai.com/api/router/guests`).
+- `DRY_RUN` — `true` = forwarder logs the payload but sends nothing; `false` (default) = deliver.
 
-Overrides: `CHANNEL=1|6|11`, `REGDOM=US`, `FORCE=1` (proceed with clients connected).
+### Delivery depends on the device's api_key being registered
 
-Two things this script encodes, both of which caused real outages:
+The forwarder authenticates with the device's **own** `api_key` from
+`/FlawkDetection/configuration.json` (the same key the box's other CMS senders use, via the
+`x-api-key` header). That key must exist in the target CMS's `users.live_api_key` column, or
+POSTs return **401** and are retried forever — guests are still captured and spooled and the
+portal is unaffected, only CMS/Patch delivery waits. The installer prints this device's
+`place_id` and a masked key so you can confirm it is registered.
 
-- **`band` and `channel` must be set in one `nmcli con modify`.** NM validates each modify
-  independently, so `band bg` is rejected while the channel is still 36, and setting the
-  channel first leaves an impossible pair that fails to activate with a misleading
-  *"802.1X supplicant took too long to authenticate"*.
-- **`start_router.py` deletes and recreates the AP from `AP.sh` on every boot**, so an
-  `nmcli`-only change silently reverts. The regdomain also resets to `00` each boot, which
-  is why `iw reg set` goes into `AP.sh` too.
+## Theme-only (legacy) and the AP fix
 
-This fixes **joining** the network. Completing the signup form is a separate, open issue.
+`apply.sh` overlays just the design (backup + md5-verify + overlay, no restart). `fix_ap_24ghz.sh`
+is a separate radio fix (auto-detects the interface, surveys 2.4 GHz, gates on the AP coming
+back up, auto-rolls-back, persists into `AP.sh`). See the script headers for details and env
+overrides. `install.sh` supersedes `apply.sh` for the Epicenter rollout.
+
+## Consent fix is included
+
+The shipped `splash.html` names both checkboxes and makes **marketing opt-in optional**
+(`name="sms_on"`, not `required`) while keeping terms `required` (`name="terms"`) — TCPA/CTIA:
+SMS consent may not be conditioned on WiFi. The patched nodogsplash threads `sms_on` through the
+auth path and records it with each guest; consent enforcement happens server-side in the CMS.
+
+## Do not change the field names
+
+`Flawk-5G/capture_webpages.py` reads `registered_clients.csv` **positionally** (`row[3]`,
+`row[4]`, `row[5]`). Renaming the `email`, `phone` or `firstname` inputs silently produces blank
+columns with no error anywhere.
 
 ## Contents
 
 | File | Purpose |
 |---|---|
-| `splash.html` | Pre-auth splash page. Preserves the nodogsplash `$authaction` / `$tok` / `$redir` variables and the `email` / `phone` / `firstname` field names. |
-| `status.html` | Shown to already-authenticated clients. |
-| `images/epicenter.png` | Epicenter logo. |
-| `MD5SUMS` | Integrity manifest used by `apply.sh`. |
-| `apply.sh` | Backup + download + verify + overlay. |
+| `install.sh` | Full patch-supported portal installer (self-verifying, auto-rollback). |
+| `payload/nodogsplash-src/{auth.c,auth.h,http_microhttpd.c,ndsctl_thread.c}` | The 4 patched nodogsplash sources; built on-device. |
+| `payload/guest_forwarder.py` | Delivers spooled guests to the CMS. |
+| `payload/MD5SUMS` | Integrity manifest for the code payload. |
+| `splash.html` / `status.html` / `images/epicenter.png` | Consent-fixed Epicenter theme (also used by `apply.sh`). |
+| `MD5SUMS` | Integrity manifest for the theme. |
+| `apply.sh` | Theme-only overlay. |
+| `fix_ap_24ghz.sh` | 5 GHz→2.4 GHz AP fix. |
 
-`.gitattributes` sets `* -text` so git never rewrites line endings. Without it,
-`core.autocrlf` would alter the HTML bytes and every md5 check would fail.
+`.gitattributes` sets `* -text` so git never rewrites line endings — EOL conversion would change
+the md5s and break every integrity check.
 
-## Do not change the field names
+## Known gaps (not fixed by this overlay)
 
-`Flawk-5G/capture_webpages.py` reads `registered_clients.csv` **positionally**
-(`row[3]`, `row[4]`, `row[5]`). Renaming the `email`, `phone` or `firstname`
-inputs silently produces blank columns with no error anywhere.
-
-## Known gaps (not fixable from this overlay)
-
-- `nodogsplash.conf` hardcodes `RedirectURL` to `flawkai.com`, so guests still
-  land on a Flawk-branded page after login. Changing it requires a nodogsplash
-  restart.
+- `nodogsplash.conf` hardcodes `RedirectURL` to `flawkai.com`, so guests land on a Flawk-branded
+  page after login. Changing it needs a nodogsplash restart (which `install.sh` already does, so
+  a future version could bundle it).
 - The Terms & Conditions body still names "Flawk" as the legal entity.
-- The marketing opt-in checkbox is `required`, i.e. consent is a condition of
-  WiFi access — worth a compliance review.
 
 ## Clean-up
 
-This is a temporary public repo. Delete it once the theme ships in the package
-installer (`setup.py` → Portal Design dropdown), after which devices should be
-provisioned rather than patched by hand.
+Temporary public repo. Delete it once the pipeline ships in the package installer
+(`setup.py` → Portal Design), after which devices are provisioned rather than patched by hand.

@@ -1,0 +1,5 @@
+4e5af25b17e78881201b60e591566896 *nodogsplash-src/auth.c
+10bad6c8af5c1d09d46b5006435be7f4 *nodogsplash-src/auth.h
+eda8f3f9477827b73dbf42bb31d55e39 *nodogsplash-src/http_microhttpd.c
+7ab597d5d11c6f25ea4ea8a412d7a54b *nodogsplash-src/ndsctl_thread.c
+61505ba3de8e0a759b66337547a14c38 *guest_forwarder.py
