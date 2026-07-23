@@ -321,11 +321,12 @@ static void json_escape_quoted(char *dst, size_t dst_len, const char *src)
  * @param reason can be NULL
  * @param email the client's email
  * @param firstname the client's first name
+ * @param lastname the client's last name
  * @param sms_on "1"/non-empty when the guest opted in to SMS marketing, NULL/empty otherwise
  * @return 0 on success
  */
 int
-auth_client_auth_nolock(const unsigned id, const char *reason, const char *email, const char *phonenumber, const char *firstname, const char *sms_on)
+auth_client_auth_nolock(const unsigned id, const char *reason, const char *email, const char *phonenumber, const char *firstname, const char *lastname, const char *sms_on)
 {
 	t_client *client;
 	int rc;
@@ -347,14 +348,17 @@ auth_client_auth_nolock(const unsigned id, const char *reason, const char *email
 
 		/* CSV-escape every user-controlled field so a comma cannot shift columns and a
 		 * newline cannot inject a fabricated row (this data now feeds a marketing platform). */
-		char e_email[512], e_phone[128], e_first[256];
+		char e_email[512], e_phone[128], e_first[256], e_last[256];
 		csv_escape_quoted(e_email, sizeof(e_email), email);
 		csv_escape_quoted(e_phone, sizeof(e_phone), phonenumber);
 		csv_escape_quoted(e_first, sizeof(e_first), firstname);
+		csv_escape_quoted(e_last,  sizeof(e_last),  lastname);
 
+		/* lastname is appended as a trailing 7th column so email/phone/first stay at cols
+		 * 3/4/5 that capture_webpages.py reads positionally (it ignores extra columns). */
 		char csv_entry[2048];
-		snprintf(csv_entry, sizeof(csv_entry), "%ld, %s, %s, %s, %s, %s\n",
-			rawtime, client->mac, client->ip, e_email, e_phone, e_first);
+		snprintf(csv_entry, sizeof(csv_entry), "%ld, %s, %s, %s, %s, %s, %s\n",
+			rawtime, client->mac, client->ip, e_email, e_phone, e_first, e_last);
 
 		/* registered_clients.csv is wiped every boot (start_router.py) and is kept only as
 		 * the existing on-device success indicator. Both opens are NULL-checked so an
@@ -373,10 +377,11 @@ auth_client_auth_nolock(const unsigned id, const char *reason, const char *email
 		/* Durable delivery spool for CMS/Patch forwarding. Unlike the CSV this path is NOT
 		 * wiped on boot, so a guest who signs up just before a reboot is not lost. It is
 		 * JSON-escaped, fsync'd and append-only; guest_forwarder.py delivers and dedupes. */
-		char j_email[512], j_phone[128], j_first[256], j_mac[64], j_ip[64];
+		char j_email[512], j_phone[128], j_first[256], j_last[256], j_mac[64], j_ip[64];
 		json_escape_quoted(j_email, sizeof(j_email), email);
 		json_escape_quoted(j_phone, sizeof(j_phone), phonenumber);
 		json_escape_quoted(j_first, sizeof(j_first), firstname);
+		json_escape_quoted(j_last,  sizeof(j_last),  lastname);
 		json_escape_quoted(j_mac,   sizeof(j_mac),   client->mac);
 		json_escape_quoted(j_ip,    sizeof(j_ip),    client->ip);
 		const char *sms_val = (sms_on && sms_on[0] && strcmp(sms_on, "0") != 0) ? "1" : "0";
@@ -384,8 +389,8 @@ auth_client_auth_nolock(const unsigned id, const char *reason, const char *email
 		FILE *spool = fopen("/FlawkDetection/Flawk-5G/guest_spool.jsonl", "a");
 		if (spool != NULL) {
 			fprintf(spool,
-				"{\"ts\":%ld,\"mac\":%s,\"ip\":%s,\"email\":%s,\"phone\":%s,\"firstname\":%s,\"sms_on\":%s}\n",
-				rawtime, j_mac, j_ip, j_email, j_phone, j_first, sms_val);
+				"{\"ts\":%ld,\"mac\":%s,\"ip\":%s,\"email\":%s,\"phone\":%s,\"firstname\":%s,\"lastname\":%s,\"sms_on\":%s}\n",
+				rawtime, j_mac, j_ip, j_email, j_phone, j_first, j_last, sms_val);
 			fflush(spool);
 			fsync(fileno(spool));
 			fclose(spool);
@@ -398,12 +403,12 @@ auth_client_auth_nolock(const unsigned id, const char *reason, const char *email
 }
 
 int
-auth_client_auth(const unsigned id, const char *reason, const char *email, const char *phonenumber, const char *firstname, const char *sms_on)
+auth_client_auth(const unsigned id, const char *reason, const char *email, const char *phonenumber, const char *firstname, const char *lastname, const char *sms_on)
 {
 	int rc;
 
 	LOCK_CLIENT_LIST();
-	rc = auth_client_auth_nolock(id, reason, email, phonenumber, firstname, sms_on);
+	rc = auth_client_auth_nolock(id, reason, email, phonenumber, firstname, lastname, sms_on);
 	UNLOCK_CLIENT_LIST();
 
 	return rc;

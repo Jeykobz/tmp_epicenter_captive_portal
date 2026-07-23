@@ -56,7 +56,7 @@
 static t_client *add_client(const char mac[], const char ip[]);
 static int authenticated(struct MHD_Connection *connection, const char *url, t_client *client);
 static int preauthenticated(struct MHD_Connection *connection, const char *url, t_client *client);
-static int authenticate_client(struct MHD_Connection *connection, const char *redirect_url, t_client *client, const char *email, const char *phonenumber, const char *firstname, const char *sms_on);
+static int authenticate_client(struct MHD_Connection *connection, const char *redirect_url, t_client *client, const char *email, const char *phonenumber, const char *firstname, const char *lastname, const char *sms_on);
 static enum MHD_Result get_host_value_callback(void *cls, enum MHD_ValueKind kind, const char *key, const char *value);
 static int serve_file(struct MHD_Connection *connection, t_client *client, const char *url);
 static int show_splashpage(struct MHD_Connection *connection, t_client *client);
@@ -432,7 +432,7 @@ static int try_to_authenticate(struct MHD_Connection *connection, t_client *clie
  */
 static int authenticate_client(struct MHD_Connection *connection,
 							const char *redirect_url,
-							t_client *client, const char *email, const char *phonenumber, const char *firstname, const char *sms_on)
+							t_client *client, const char *email, const char *phonenumber, const char *firstname, const char *lastname, const char *sms_on)
 {
 	s_config *config = config_get_config();
 	time_t now = time(NULL);
@@ -451,9 +451,9 @@ static int authenticate_client(struct MHD_Connection *connection,
 			free(query_str);
 			return ret;
 		}
-		rc = auth_client_auth(client->id, "client_auth", email, phonenumber, firstname, sms_on);
+		rc = auth_client_auth(client->id, "client_auth", email, phonenumber, firstname, lastname, sms_on);
 	} else {
-		rc = auth_client_auth(client->id, NULL, email, phonenumber, firstname, sms_on);
+		rc = auth_client_auth(client->id, NULL, email, phonenumber, firstname, lastname, sms_on);
 	}
 
 	if (rc != 0) {
@@ -582,6 +582,7 @@ static int preauthenticated(struct MHD_Connection *connection,
 		// an unchecked HTML checkbox is not submitted at all, so NULL == no consent.
 		const char *email = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "email");
 		const char *firstname = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "firstname");
+		const char *lastname = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "lastname");
 		const char *phonenumber = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "phone");
 		const char *sms_on = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "sms_on");
 		if (email != NULL) {
@@ -590,10 +591,13 @@ static int preauthenticated(struct MHD_Connection *connection,
 		if (firstname != NULL) {
 			debug(LOG_DEBUG, "Firstname captured: %s", firstname);
 		}
+		if (lastname != NULL) {
+			debug(LOG_DEBUG, "Lastname captured: %s", lastname);
+		}
 		if (phonenumber != NULL) {
 			debug(LOG_DEBUG, "Phonenumber captured: %s", phonenumber);
 		}
-		return authenticate_client(connection, redirect_url, client, email, phonenumber, firstname, sms_on);
+		return authenticate_client(connection, redirect_url, client, email, phonenumber, firstname, lastname, sms_on);
 	}
 
 	if (is_splashpage(host, url)) {

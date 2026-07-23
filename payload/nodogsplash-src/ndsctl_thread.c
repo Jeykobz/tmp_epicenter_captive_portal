@@ -308,9 +308,10 @@ ndsctl_auth(FILE *fp, char *arg)
 	if (id) {
 		const char *email = "No email specified";
 		const char *firstname = "No firstname specified";
+		const char *lastname = "No lastname specified";
 		const char *phonenumber = "No phonenumber specified";
 		/* ndsctl auth is a manual/admin path with no marketing-consent signal */
-		rc = auth_client_auth_nolock(id, "ndsctl_auth", email, phonenumber, firstname, NULL);
+		rc = auth_client_auth_nolock(id, "ndsctl_auth", email, phonenumber, firstname, lastname, NULL);
 	} else {
 		debug(LOG_DEBUG, "Client not found.");
 		rc = -1;

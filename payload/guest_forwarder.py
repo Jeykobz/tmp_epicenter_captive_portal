@@ -156,6 +156,7 @@ def post_guest(cfg, identity, row):
             "email": row.get('email'),
             "phone": row.get('phone'),
             "firstname": row.get('firstname'),
+            "lastname": row.get('lastname'),
             "sms_on": row.get('sms_on'),
         },
     }
