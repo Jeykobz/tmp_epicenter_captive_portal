@@ -24,7 +24,7 @@ step() { echo; echo "== $* =="; }
 
 # ---- config / defaults -------------------------------------------------------
 TS=$(date +%Y%m%d-%H%M%S)
-ENDPOINT="${ENDPOINT:-https://devcms.flawkai.com/api/router/guests}"
+ENDPOINT="${ENDPOINT:-https://cms.flawkai.com/api/router/guests}"
 DRY_RUN="${DRY_RUN:-false}"
 REPO_URL="${REPO_URL:-https://github.com/Jeykobz/tmp_epicenter_captive_portal.git}"
 BRANCH="${BRANCH:-main}"
